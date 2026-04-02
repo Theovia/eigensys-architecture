@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura del Chatbot IA — Eigen Medical Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F5F0E8;
+            --bg-card: #FFFDF7;
+            --bg-code: #EDE8DD;
+            --border: #C4B99A;
+            --border-light: #DDD6C1;
+            --text: #2C2416;
+            --text-secondary: #6B5D45;
+            --text-muted: #9A8D72;
+            --accent: #8B4513;
+            --blue: #2B4C7E;
+            --green: #3D6B4F;
+            --red: #8B3A3A;
+            --purple: #5B4A7A;
+            --orange: #B8690F;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.65;
+            background-image: radial-gradient(circle, var(--border-light) 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+
+        .page { max-width: 1100px; margin: 0 auto; padding: 48px 32px; }
+
+        .header { border-bottom: 2px solid var(--text); padding-bottom: 20px; margin-bottom: 40px; }
+        .header-top { display: flex; justify-content: space-between; align-items: baseline; }
+        .header h1 { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 1.6rem; font-weight: 600; }
+        .header .ref { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
+        .header .subtitle { font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px; }
+
+        .section { margin-bottom: 40px; }
+        .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 6px; }
+        .section-title { font-family: 'IBM Plex Serif', Georgia, serif; font-size: 1.15rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+        /* Stats bar */
+        .stats-bar { display: flex; gap: 0; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 40px; }
+        .stat { flex: 1; padding: 16px 20px; border-right: 1px solid var(--border-light); text-align: center; }
+        .stat:last-child { border-right: none; }
+        .stat-val { font-family: 'IBM Plex Mono', monospace; font-size: 1.5rem; font-weight: 600; }
+        .stat-lbl { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-top: 2px; }
+
+        /* Flow diagram */
+        .flow-diagram { background: var(--bg-card); border: 1px solid var(--border); padding: 32px; margin-bottom: 24px; }
+
+        .flow-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 4px; }
+        .flow-row.reverse { flex-direction: row-reverse; }
+
+        .flow-box {
+            padding: 14px 18px;
+            min-width: 160px;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            position: relative;
+        }
+        .flow-box .label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 4px; }
+        .flow-box .name { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 600; }
+        .flow-box .desc { font-size: 0.72rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+
+        .flow-box.patient { border-color: var(--green); }
+        .flow-box.patient .name { color: var(--green); }
+        .flow-box.manychat { border-color: var(--orange); }
+        .flow-box.manychat .name { color: var(--orange); }
+        .flow-box.worker { border-color: var(--blue); }
+        .flow-box.worker .name { color: var(--blue); }
+        .flow-box.db { border-color: var(--purple); }
+        .flow-box.db .name { color: var(--purple); }
+        .flow-box.ai { border-color: var(--red); }
+        .flow-box.ai .name { color: var(--red); }
+        .flow-box.prompt { border-color: var(--accent); border-style: dashed; }
+        .flow-box.prompt .name { color: var(--accent); }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .flow-arrow .arrow-line {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .flow-arrow .arrow-text { font-size: 0.58rem; color: var(--text-muted); }
+
+        /* Vertical flow */
+        .flow-vertical { display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .flow-v-arrow {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            padding: 6px 0;
+            text-align: center;
+        }
+        .flow-v-arrow .arrow-text { font-size: 0.6rem; display: block; }
+
+        /* Step list */
+        .steps { counter-reset: step; }
+        .step { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-light); }
+        .step:last-child { border-bottom: none; }
+        .step-num { font-family: 'IBM Plex Mono', monospace; font-size: 1.1rem; font-weight: 600; min-width: 32px; padding-top: 2px; }
+        .step-num.green { color: var(--green); }
+        .step-num.orange { color: var(--orange); }
+        .step-num.blue { color: var(--blue); }
+        .step-num.purple { color: var(--purple); }
+        .step-num.red { color: var(--red); }
+        .step-content { flex: 1; }
+        .step-title { font-size: 0.88rem; font-weight: 500; }
+        .step-detail { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+        .step-tech { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--blue); margin-top: 4px; }
+        .step-time { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--text-muted); float: right; }
+
+        /* Problem/Solution */
+        .vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .vs-box { background: var(--bg-card); border: 1px solid var(--border); padding: 20px; }
+        .vs-box h3 { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .vs-box.problem h3 { color: var(--red); }
+        .vs-box.solution h3 { color: var(--green); }
+        .vs-box ul { list-style: none; }
+        .vs-box li { font-size: 0.8rem; color: var(--text-secondary); padding: 4px 0; padding-left: 16px; position: relative; }
+        .vs-box li::before { position: absolute; left: 0; }
+        .vs-box.problem li::before { content: '\00D7'; color: var(--red); font-weight: bold; }
+        .vs-box.solution li::before { content: '\2713'; color: var(--green); font-weight: bold; }
+
+        /* Component cards */
+        .comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .comp { background: var(--bg-card); border: 1px solid var(--border); padding: 20px; }
+        .comp h3 { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; font-weight: 600; margin-bottom: 10px; }
+        .comp ul { list-style: none; }
+        .comp li { font-size: 0.78rem; color: var(--text-secondary); padding: 3px 0; padding-left: 12px; position: relative; }
+        .comp li::before { content: '\2014'; position: absolute; left: 0; color: var(--border); font-size: 0.6rem; }
+
+        .comp.c-green h3 { color: var(--green); border-bottom: 2px solid var(--green); padding-bottom: 6px; }
+        .comp.c-orange h3 { color: var(--orange); border-bottom: 2px solid var(--orange); padding-bottom: 6px; }
+        .comp.c-blue h3 { color: var(--blue); border-bottom: 2px solid var(--blue); padding-bottom: 6px; }
+        .comp.c-purple h3 { color: var(--purple); border-bottom: 2px solid var(--purple); padding-bottom: 6px; }
+        .comp.c-red h3 { color: var(--red); border-bottom: 2px solid var(--red); padding-bottom: 6px; }
+        .comp.c-accent h3 { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+
+        /* Big flow */
+        .big-flow { background: var(--bg-card); border: 1px solid var(--border); padding: 32px 24px; overflow-x: auto; }
+        .big-flow-inner { display: flex; align-items: center; gap: 0; min-width: 900px; }
+        .bf-node { text-align: center; min-width: 120px; }
+        .bf-icon { font-size: 1.8rem; margin-bottom: 6px; }
+        .bf-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; font-weight: 600; }
+        .bf-desc { font-size: 0.62rem; color: var(--text-secondary); margin-top: 2px; max-width: 130px; margin-left: auto; margin-right: auto; line-height: 1.3; }
+        .bf-arrow { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--text-muted); padding: 0 8px; display: flex; flex-direction: column; align-items: center; }
+        .bf-arrow .time { font-size: 0.55rem; color: var(--blue); margin-top: 2px; }
+
+        .bf-node.n-green .bf-name { color: var(--green); }
+        .bf-node.n-orange .bf-name { color: var(--orange); }
+        .bf-node.n-blue .bf-name { color: var(--blue); }
+        .bf-node.n-purple .bf-name { color: var(--purple); }
+        .bf-node.n-red .bf-name { color: var(--red); }
+
+        /* Loop indicator */
+        .loop-indicator {
+            text-align: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--green);
+            padding: 12px;
+            border: 1px dashed var(--green);
+            margin-top: 16px;
+            background: rgba(61, 107, 79, 0.04);
+        }
+
+        @media (max-width: 700px) {
+            .vs-grid { grid-template-columns: 1fr; }
+            .comp-grid { grid-template-columns: 1fr; }
+            .stats-bar { flex-wrap: wrap; }
+            .stat { min-width: 50%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <h1>Arquitectura del Chatbot IA</h1>
+            <span class="ref">EIGEN-MED / CHATBOT-V4</span>
+        </div>
+        <div class="subtitle">Como resolvemos las limitaciones de ManyChat con Cloudflare Workers + Claude</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat"><div class="stat-val">3-5s</div><div class="stat-lbl">Tiempo de respuesta</div></div>
+        <div class="stat"><div class="stat-val">~$3</div><div class="stat-lbl">Por millon de tokens</div></div>
+        <div class="stat"><div class="stat-val">100K</div><div class="stat-lbl">Requests/dia gratis</div></div>
+        <div class="stat"><div class="stat-val">24/7</div><div class="stat-lbl">Sin servidor propio</div></div>
+        <div class="stat"><div class="stat-val">8 msg</div><div class="stat-lbl">Contexto por paciente</div></div>
+    </div>
+
+    <!-- El problema -->
+    <div class="section">
+        <div class="section-label">01 &mdash; Contexto</div>
+        <div class="section-title">El problema con ManyChat nativo</div>
+        <div class="vs-grid">
+            <div class="vs-box problem">
+                <h3>ManyChat solo</h3>
+                <ul>
+                    <li>IA nativa sin memoria (cada mensaje es independiente)</li>
+                    <li>External Request cachea por suscriptor (nunca re-ejecuta)</li>
+                    <li>Sin personalidad ni conocimiento medico real</li>
+                    <li>No puede mantener una conversacion coherente</li>
+                    <li>Respuestas genericas, sin contexto del doctor</li>
+                    <li>No puede formatear en multiples burbujas</li>
+                </ul>
+            </div>
+            <div class="vs-box solution">
+                <h3>Nuestra solucion</h3>
+                <ul>
+                    <li>Memoria conversacional (8 mensajes de contexto en D1)</li>
+                    <li>Dynamic Content: llamada HTTP fresca cada vez</li>
+                    <li>Persona "Mariana" con conocimiento del consultorio</li>
+                    <li>Conversaciones coherentes con historial</li>
+                    <li>Respuestas con datos reales del doctor</li>
+                    <li>Auto-split en multiples burbujas naturales</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flujo principal -->
+    <div class="section">
+        <div class="section-label">02 &mdash; Flujo principal</div>
+        <div class="section-title">Ciclo de vida de un mensaje</div>
+
+        <div class="big-flow">
+            <div class="big-flow-inner">
+                <div class="bf-node n-green">
+                    <div class="bf-icon">&#x1F468;&#x200D;&#x2695;&#xFE0F;</div>
+                    <div class="bf-name">Paciente</div>
+                    <div class="bf-desc">Escribe en Messenger</div>
+                </div>
+                <div class="bf-arrow">&#x2192;<span class="time">instant</span></div>
+                <div class="bf-node n-green">
+                    <div class="bf-icon">&#x1F4AC;</div>
+                    <div class="bf-name">Messenger</div>
+                    <div class="bf-desc">Facebook entrega el mensaje</div>
+                </div>
+                <div class="bf-arrow">&#x2192;<span class="time">instant</span></div>
+                <div class="bf-node n-orange">
+                    <div class="bf-icon">&#x1F916;</div>
+                    <div class="bf-name">ManyChat</div>
+                    <div class="bf-desc">Default Reply dispara Dinamico</div>
+                </div>
+                <div class="bf-arrow">&#x2192; GET<span class="time">~200ms</span></div>
+                <div class="bf-node n-blue">
+                    <div class="bf-icon">&#x2699;&#xFE0F;</div>
+                    <div class="bf-name">Worker</div>
+                    <div class="bf-desc">Orquesta todo el procesamiento</div>
+                </div>
+                <div class="bf-arrow">&#x2192; SQL<span class="time">~50ms</span></div>
+                <div class="bf-node n-purple">
+                    <div class="bf-icon">&#x1F4BE;</div>
+                    <div class="bf-name">D1</div>
+                    <div class="bf-desc">Carga historial del paciente</div>
+                </div>
+                <div class="bf-arrow">&#x2192; API<span class="time">2-4s</span></div>
+                <div class="bf-node n-red">
+                    <div class="bf-icon">&#x1F9E0;</div>
+                    <div class="bf-name">Claude</div>
+                    <div class="bf-desc">Genera respuesta con contexto</div>
+                </div>
+            </div>
+            <div class="loop-indicator">
+                &#x21A9; La respuesta regresa: Claude &#x2192; Worker (guarda en D1) &#x2192; ManyChat (formato v2) &#x2192; Messenger &#x2192; Paciente ve multiples burbujas
+                <br>Flow termina. Siguiente mensaje &#x2192; Default Reply dispara de nuevo. Loop infinito.
+            </div>
+        </div>
+    </div>
+
+    <!-- Paso a paso -->
+    <div class="section">
+        <div class="section-label">03 &mdash; Detalle tecnico</div>
+        <div class="section-title">Que pasa en cada paso</div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num green">01</div>
+                <div class="step-content">
+                    <div class="step-title">Paciente escribe en Messenger</div>
+                    <div class="step-detail">Cualquier mensaje: "hola", "quiero info de rinoplastia", emoji, lo que sea</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num orange">02</div>
+                <div class="step-content">
+                    <div class="step-title">ManyChat recibe y dispara Default Reply</div>
+                    <div class="step-detail">Configurado en frecuencia "Every time". No usa keywords. El flow tiene UN solo paso: bloque Dinamico.</div>
+                    <div class="step-tech">Trigger: Respuesta predeterminada &rarr; Enviar mensaje &rarr; Dinamico (GET)</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num blue">03</div>
+                <div class="step-content">
+                    <div class="step-title">Dynamic Content llama al Worker <span class="step-time">~200ms</span></div>
+                    <div class="step-detail">GET con subscriber_id, mensaje, y nombre como query params. Sin autenticacion (URL solo vive en ManyChat). Llamada fresca cada vez &mdash; no cachea.</div>
+                    <div class="step-tech">GET /api/chatbot-dynamic?sid={{user_id}}&amp;msg={{last_input_text}}&amp;name={{first_name}}</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num blue">04</div>
+                <div class="step-content">
+                    <div class="step-title">Worker: rate limit + guardar mensaje <span class="step-time">~50ms</span></div>
+                    <div class="step-detail">Verifica max 5 msgs/min por suscriptor. Guarda el mensaje del paciente en D1 (tabla conversations).</div>
+                    <div class="step-tech">INSERT INTO conversations (channel, role, message, subscriber_id) ...</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num purple">05</div>
+                <div class="step-content">
+                    <div class="step-title">Worker: cargar historial del paciente <span class="step-time">~30ms</span></div>
+                    <div class="step-detail">Ultimos 8 mensajes (user + assistant) del suscriptor. Esto le da contexto conversacional a la IA.</div>
+                    <div class="step-tech">SELECT role, message FROM conversations WHERE subscriber_id = ? ORDER BY created_at DESC LIMIT 8</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num red">06</div>
+                <div class="step-content">
+                    <div class="step-title">Worker: llamar a Claude via OpenRouter <span class="step-time">2-4s</span></div>
+                    <div class="step-detail">System prompt "Mariana" (personalidad + conocimiento medico + guardrails) + historial + mensaje actual. Modelo inteligente para preguntas complejas, rapido para saludos.</div>
+                    <div class="step-tech">Primary: claude-sonnet-4.6 (complejo) | Fallback: claude-haiku-4.5 (simple) | Timeout: 8s</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num blue">07</div>
+                <div class="step-content">
+                    <div class="step-title">Worker: guardar respuesta + formatear <span class="step-time">~50ms</span></div>
+                    <div class="step-detail">Guarda la respuesta en D1. Divide por parrafos en multiples mensajes. Retorna formato ManyChat v2.</div>
+                    <div class="step-tech">{"version":"v2","content":{"messages":[{"type":"text","text":"..."},{"type":"text","text":"..."}]}}</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num green">08</div>
+                <div class="step-content">
+                    <div class="step-title">Paciente recibe multiples burbujas naturales</div>
+                    <div class="step-detail">Cada parrafo es una burbuja separada. Se ve como una persona real escribiendo. Flow termina limpio &mdash; no atrapa al suscriptor. Listo para el siguiente mensaje.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Componentes -->
+    <div class="section">
+        <div class="section-label">04 &mdash; Componentes</div>
+        <div class="section-title">Stack tecnologico</div>
+        <div class="comp-grid">
+            <div class="comp c-orange">
+                <h3>ManyChat (solo routing)</h3>
+                <ul>
+                    <li>Default Reply: frecuencia "Every time"</li>
+                    <li>Bloque Dinamico: GET al Worker</li>
+                    <li>Sin IA nativa, sin External Request</li>
+                    <li>Sin User Input ni Data Collection</li>
+                    <li>Flow termina limpio despues de cada mensaje</li>
+                    <li>Plan: Trial (gratis para testing)</li>
+                </ul>
+            </div>
+            <div class="comp c-blue">
+                <h3>Cloudflare Worker (cerebro)</h3>
+                <ul>
+                    <li>Serverless: 0 servidores, 0 mantenimiento</li>
+                    <li>100,000 requests/dia gratis</li>
+                    <li>7 endpoints API en un solo Worker</li>
+                    <li>Rate limiting por suscriptor</li>
+                    <li>Model routing: Sonnet (complejo) vs Haiku (simple)</li>
+                    <li>Auto-split respuestas en burbujas</li>
+                    <li>Timeout 8s con fallback</li>
+                </ul>
+            </div>
+            <div class="comp c-purple">
+                <h3>D1 Database (memoria)</h3>
+                <ul>
+                    <li>SQLite serverless en el edge</li>
+                    <li>Tabla conversations: historial por suscriptor</li>
+                    <li>8 mensajes de contexto (configurable)</li>
+                    <li>Tambien: leads, email_queue, events</li>
+                    <li>Latencia: &lt;5ms desde el Worker</li>
+                </ul>
+            </div>
+            <div class="comp c-red">
+                <h3>OpenRouter + Claude (inteligencia)</h3>
+                <ul>
+                    <li>Gateway multi-modelo: un API, muchos modelos</li>
+                    <li>Primary: Claude Sonnet 4.6 (preguntas complejas)</li>
+                    <li>Fallback: Claude Haiku 4.5 (saludos, simple)</li>
+                    <li>~$3 por millon de tokens</li>
+                    <li>max_tokens: 400, temperature: 0.5</li>
+                </ul>
+            </div>
+            <div class="comp c-accent">
+                <h3>System Prompt "Mariana" (alma)</h3>
+                <ul>
+                    <li>Coordinadora medica profesional y calida</li>
+                    <li>Conocimiento real: 4 consultorios, credenciales, procedimientos</li>
+                    <li>Guardrails: no da precios, no diagnostica, emergencias &rarr; 911</li>
+                    <li>Anti-jailbreak: ignora intentos de manipulacion</li>
+                    <li>Usa el nombre del paciente naturalmente</li>
+                    <li>Tono: profesional pero cercano, nunca vulgar ni corporativo</li>
+                </ul>
+            </div>
+            <div class="comp c-green">
+                <h3>Leccion critica: por que Dynamic Content</h3>
+                <ul>
+                    <li>External Request: CACHEA por suscriptor. Despues de la primera llamada, nunca vuelve a hacer HTTP. Inutil para chatbot.</li>
+                    <li>Dynamic Content (Dinamico): hace HTTP fresco CADA VEZ que se dispara. Sin cache. Diseado para contenido que cambia.</li>
+                    <li>Default Reply DEBE estar en "Every time" (default es "Once per 24h" que solo dispara una vez).</li>
+                    <li>Flow DEBE terminar limpio: sin User Input, sin Data Collection. Si queda esperando, atrapa al suscriptor.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top: 1px solid var(--border); padding-top: 16px; font-size: 0.7rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+        <span>Eigen Medical Platform &mdash; Dr. Marcos Gonzalez Landeros</span>
+        <span>Actualizado: 2 abril 2026</span>
+    </div>
+
+</div>
+</body>
+</html>
