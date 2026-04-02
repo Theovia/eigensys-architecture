@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura del Sistema — Eigen Medical Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F5F0E8;
+            --bg-card: #FFFDF7;
+            --bg-code: #EDE8DD;
+            --border: #C4B99A;
+            --border-light: #DDD6C1;
+            --text: #2C2416;
+            --text-secondary: #6B5D45;
+            --text-muted: #9A8D72;
+            --accent: #8B4513;
+            --accent-light: #A0522D;
+            --blue: #2B4C7E;
+            --blue-light: #3D6098;
+            --green: #3D6B4F;
+            --red: #8B3A3A;
+            --purple: #5B4A7A;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.65;
+            background-image:
+                radial-gradient(circle, var(--border-light) 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 32px;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 2px solid var(--text);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .header h1 {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .header .ref {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-family: 'IBM Plex Serif', Georgia, serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Diagram */
+        .diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .layer {
+            margin-bottom: 28px;
+        }
+
+        .layer-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        .nodes {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .node {
+            border: 1.5px solid var(--border);
+            padding: 12px 16px;
+            min-width: 140px;
+            background: var(--bg-card);
+        }
+
+        .node-name {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .node-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        .node.infra { border-color: var(--blue); }
+        .node.infra .node-name { color: var(--blue); }
+        .node.ext { border-color: var(--accent); }
+        .node.ext .node-name { color: var(--accent); }
+        .node.data { border-color: var(--purple); }
+        .node.data .node-name { color: var(--purple); }
+        .node.entry { border-color: var(--green); }
+        .node.entry .node-name { color: var(--green); }
+
+        .connector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0 8px 20px;
+        }
+
+        .connector-line {
+            width: 1px;
+            height: 16px;
+            background: var(--border);
+        }
+
+        .connector-arrow {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Wide node */
+        .node.wide {
+            flex: 1;
+            min-width: 100%;
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .node-grid-item {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            padding: 4px 0;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .node-grid-item span {
+            color: var(--text-muted);
+            font-size: 0.6rem;
+        }
+
+        /* Funnel */
+        .funnel {
+            counter-reset: step;
+        }
+
+        .funnel-step {
+            display: flex;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .funnel-step:last-child { border-bottom: none; }
+
+        .funnel-num {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            min-width: 24px;
+            padding-top: 2px;
+        }
+
+        .funnel-content {
+            flex: 1;
+        }
+
+        .funnel-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .funnel-detail {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        th {
+            text-align: left;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+        }
+
+        td code {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--blue);
+        }
+
+        .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .dot.on { background: var(--green); }
+        .dot.wait { background: var(--accent); }
+
+        /* Cost grid */
+        .cost-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .cost-group h3 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .cost-item .price {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 500;
+        }
+
+        .cost-item .price.free { color: var(--green); }
+        .cost-item .price.paid { color: var(--accent); }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            margin-bottom: 40px;
+        }
+
+        .stat {
+            flex: 1;
+            padding: 16px 20px;
+            border-right: 1px solid var(--border-light);
+            text-align: center;
+        }
+
+        .stat:last-child { border-right: none; }
+
+        .stat-val {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .stat-lbl {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Component list */
+        .comp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .comp {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .comp h3 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .comp ul {
+            list-style: none;
+        }
+
+        .comp li {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            padding: 3px 0;
+            padding-left: 12px;
+            position: relative;
+        }
+
+        .comp li::before {
+            content: '\2014';
+            position: absolute;
+            left: 0;
+            color: var(--border);
+            font-size: 0.6rem;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 2px solid var(--text);
+            display: flex;
+            justify-content: space-between;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .page { padding: 24px 16px; }
+            .header h1 { font-size: 1.3rem; }
+            .nodes { flex-direction: column; }
+            .stats-bar { flex-wrap: wrap; }
+            .stat { min-width: 50%; }
+            .cost-grid { grid-template-columns: 1fr; }
+            .comp-grid { grid-template-columns: 1fr; }
+        }
+
+        @media print {
+            body { background: white; background-image: none; }
+            .diagram, .comp, .stats-bar { border-color: #ccc; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <h1>Eigen Medical Platform</h1>
+            <span class="ref">REF: EMP-ARCH-001 &mdash; Rev. 1.0</span>
+        </div>
+        <p class="subtitle">Plano de arquitectura &mdash; Sistema de captaci&oacute;n de pacientes para Dr. Marcos Gonz&aacute;lez Landeros</p>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat"><div class="stat-val">10</div><div class="stat-lbl">Dominios</div></div>
+        <div class="stat"><div class="stat-val">8</div><div class="stat-lbl">Landing pages</div></div>
+        <div class="stat"><div class="stat-val">56</div><div class="stat-lbl">Emails auto.</div></div>
+        <div class="stat"><div class="stat-val">5</div><div class="stat-lbl">API endpoints</div></div>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <section class="section">
+        <div class="section-label">01</div>
+        <h2 class="section-title">Diagrama de arquitectura</h2>
+
+        <div class="diagram">
+            <!-- Entry layer -->
+            <div class="layer">
+                <div class="layer-label">Puntos de entrada</div>
+                <div class="nodes">
+                    <div class="node entry">
+                        <div class="node-name">Meta Ads</div>
+                        <div class="node-desc">Facebook, Instagram</div>
+                    </div>
+                    <div class="node entry">
+                        <div class="node-name">Google Ads</div>
+                        <div class="node-desc">Search, Display</div>
+                    </div>
+                    <div class="node entry">
+                        <div class="node-name">SEO Org&aacute;nico</div>
+                        <div class="node-desc">10 dominios indexados</div>
+                    </div>
+                    <div class="node entry">
+                        <div class="node-name">Referidos</div>
+                        <div class="node-desc">WhatsApp, boca a boca</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="connector">
+                <div class="connector-arrow">|&nbsp;&nbsp;UTM params capturados (source, medium, campaign)</div>
+            </div>
+
+            <!-- Cloudflare layer -->
+            <div class="layer">
+                <div class="layer-label">Infraestructura &mdash; Cloudflare</div>
+                <div class="nodes">
+                    <div class="node infra wide">
+                        <div class="node-name">Cloudflare Workers + Pages + D1</div>
+                        <div class="node-grid">
+                            <div class="node-grid-item">Pages <span>/ 8 landing pages + hub + gu&iacute;as + PDFs</span></div>
+                            <div class="node-grid-item">Worker <span>/ routing + 5 API endpoints</span></div>
+                            <div class="node-grid-item">D1 <span>/ SQLite: leads, email_queue, events, conversations, doctors</span></div>
+                            <div class="node-grid-item">DNS <span>/ 10 dominios, SSL auto, CDN global</span></div>
+                            <div class="node-grid-item">Cron <span>/ cada hora: enviar emails pendientes</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="connector">
+                <div class="connector-arrow">|&nbsp;&nbsp;API calls a servicios externos</div>
+            </div>
+
+            <!-- External services -->
+            <div class="layer">
+                <div class="layer-label">Servicios externos</div>
+                <div class="nodes">
+                    <div class="node ext">
+                        <div class="node-name">Resend</div>
+                        <div class="node-desc">Email sequences (56 emails)<br>SPF + DKIM verificado<br>Webhooks: opens, clicks, bounces<br>Free: 3,000/mes</div>
+                    </div>
+                    <div class="node ext" style="border-color: #8B3A62;">
+                        <div class="node-name" style="color: #8B3A62;">Meta CAPI + Pixel</div>
+                        <div class="node-desc">Pixel 978856144474813<br>Server-side + browser-side<br>Deduplicaci&oacute;n por event_id<br>Datos hasheados SHA-256</div>
+                    </div>
+                    <div class="node ext">
+                        <div class="node-name">ManyChat</div>
+                        <div class="node-desc">WhatsApp + Instagram + FB<br>Webhook &rarr; Worker &rarr; IA<br>System prompt del doctor</div>
+                    </div>
+                    <div class="node ext">
+                        <div class="node-name">GoDaddy API</div>
+                        <div class="node-desc">Registrar de dominios<br>NS management via API<br>10 dominios del doctor</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="legend-swatch" style="border-color: var(--green);"></div> Entrada de usuario</div>
+                <div class="legend-item"><div class="legend-swatch" style="border-color: var(--blue);"></div> Infraestructura propia</div>
+                <div class="legend-item"><div class="legend-swatch" style="border-color: var(--accent);"></div> Servicios externos</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conversion Funnel -->
+    <section class="section">
+        <div class="section-label">02</div>
+        <h2 class="section-title">Funnel de conversi&oacute;n</h2>
+
+        <div class="diagram">
+            <div class="funnel">
+                <div class="funnel-step">
+                    <div class="funnel-num">01</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Usuario ve anuncio en Meta / Google</div>
+                        <div class="funnel-detail">UTM params se propagan al link de destino</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">02</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Llega a landing page del procedimiento</div>
+                        <div class="funnel-detail">cirugiaplasticacertificada.com/liposuccion/ &mdash; Meta Pixel dispara PageView</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">03</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Llena formulario: nombre, email, tel&eacute;fono</div>
+                        <div class="funnel-detail">A cambio de gu&iacute;a gratuita del procedimiento</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">04</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">POST /api/capture-lead</div>
+                        <div class="funnel-detail">Guarda lead en D1 &rarr; crea 7 emails en cola &rarr; env&iacute;a email 1 inmediato &rarr; Meta CAPI evento "Lead"</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">05</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Redirect a gu&iacute;a HTML + descarga PDF</div>
+                        <div class="funnel-detail">Usuario ve la gu&iacute;a completa en navegador, puede descargar el PDF</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">06</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Secuencia de 7 emails autom&aacute;ticos (21 d&iacute;as)</div>
+                        <div class="funnel-detail">D&iacute;a 0, 3, 5, 7, 10, 14, 21 &mdash; cron cada hora revisa cola &mdash; Resend env&iacute;a &mdash; tracking opens/clicks</div>
+                    </div>
+                </div>
+                <div class="funnel-step">
+                    <div class="funnel-num">07</div>
+                    <div class="funnel-content">
+                        <div class="funnel-title">Paciente agenda valoraci&oacute;n ($1,000 MXN)</div>
+                        <div class="funnel-detail">V&iacute;a WhatsApp 33 2635 8211 o llamada &mdash; emails 5-7 incluyen CTA directo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Endpoints -->
+    <section class="section">
+        <div class="section-label">03</div>
+        <h2 class="section-title">API endpoints del Worker</h2>
+
+        <div class="diagram">
+            <table>
+                <thead>
+                    <tr>
+                        <th>M&eacute;todo</th>
+                        <th>Ruta</th>
+                        <th>Trigger</th>
+                        <th>Funci&oacute;n</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/api/capture-lead</code></td>
+                        <td>Formulario</td>
+                        <td>Guarda lead, crea cola de 7 emails, env&iacute;a email 1, Meta CAPI</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/api/send-emails</code></td>
+                        <td>Cron (cada hora)</td>
+                        <td>Revisa email_queue, env&iacute;a pendientes via Resend, actualiza status</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/api/unsubscribe</code></td>
+                        <td>Link en email</td>
+                        <td>Marca lead como unsubscribed, cancela emails pendientes</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/api/email-webhooks</code></td>
+                        <td>Resend</td>
+                        <td>Procesa opens, clicks, bounces; cancela emails en hard bounce</td>
+                    </tr>
+                    <tr>
+                        <td><code>GET</code></td>
+                        <td><code>/api/dashboard</code></td>
+                        <td>Dashboard</td>
+                        <td>Retorna overview, leads por procedimiento, por dominio, recientes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Database Schema -->
+    <section class="section">
+        <div class="section-label">04</div>
+        <h2 class="section-title">Esquema de base de datos (D1 / SQLite)</h2>
+
+        <div class="diagram">
+            <table>
+                <thead>
+                    <tr><th>Tabla</th><th>Campos clave</th><th>Prop&oacute;sito</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>doctors</code></td>
+                        <td>id, slug, name, phone, instagram, city</td>
+                        <td>Tenants &mdash; multi-doctor ready. Dr. Marcos es el primero.</td>
+                    </tr>
+                    <tr>
+                        <td><code>leads</code></td>
+                        <td>doctor_id, name, email, phone, procedure, source_domain, language, utm_*, status</td>
+                        <td>Cada persona que llena un formulario. Status: new &rarr; nurturing &rarr; contacted &rarr; booked &rarr; converted</td>
+                    </tr>
+                    <tr>
+                        <td><code>email_queue</code></td>
+                        <td>lead_id, procedure, sequence_number (1-7), scheduled_at, status, resend_id</td>
+                        <td>Cola de emails programados. 7 por lead, d&iacute;as 0/3/5/7/10/14/21</td>
+                    </tr>
+                    <tr>
+                        <td><code>events</code></td>
+                        <td>lead_id, event_type, metadata (JSON)</td>
+                        <td>Log de actividad: form_submit, email_sent, opened, clicked, bounced, unsubscribed</td>
+                    </tr>
+                    <tr>
+                        <td><code>conversations</code></td>
+                        <td>lead_id, channel, role, message</td>
+                        <td>Historial del chatbot (WhatsApp, Instagram, Facebook)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Components -->
+    <section class="section">
+        <div class="section-label">05</div>
+        <h2 class="section-title">Componentes del sistema</h2>
+
+        <div class="comp-grid">
+            <div class="comp">
+                <h3>Landing pages (8 procedimientos)</h3>
+                <ul>
+                    <li>/liposuccion/ &mdash; Liposucci&oacute;n</li>
+                    <li>/bbl/ &mdash; Brazilian Butt Lift</li>
+                    <li>/aumento-busto/ &mdash; Aumento de Busto</li>
+                    <li>/abdominoplastia/ &mdash; Abdominoplastia</li>
+                    <li>/rinoplastia/ &mdash; Rinoplastia</li>
+                    <li>/mommy-makeover/ &mdash; Mommy Makeover</li>
+                    <li>/rejuvenecimiento/ &mdash; Rejuvenecimiento Facial</li>
+                    <li>/verifica-cirujano/ &mdash; Verifica tu Cirujano</li>
+                </ul>
+            </div>
+
+            <div class="comp">
+                <h3>Contenido por procedimiento</h3>
+                <ul>
+                    <li>Landing page con hero, formulario, credenciales, FAQ</li>
+                    <li>Gu&iacute;a HTML (~10 p&aacute;ginas educativas)</li>
+                    <li>PDF descargable (mismo contenido)</li>
+                    <li>P&aacute;gina de gracias con CTA WhatsApp</li>
+                    <li>7 emails de nurturing (21 d&iacute;as)</li>
+                </ul>
+            </div>
+
+            <div class="comp">
+                <h3>Email sequences via Resend</h3>
+                <ul>
+                    <li>Dominio verificado: cirugiaplasticacertificada.com</li>
+                    <li>SPF + DKIM configurados en Cloudflare</li>
+                    <li>56 emails (8 procedimientos &times; 7)</li>
+                    <li>Webhooks para opens, clicks, bounces</li>
+                    <li>Hard bounce cancela emails restantes</li>
+                    <li>Unsubscribe en cada email</li>
+                </ul>
+            </div>
+
+            <div class="comp">
+                <h3>Meta tracking (dual)</h3>
+                <ul>
+                    <li>Browser: Pixel JS en cada landing page</li>
+                    <li>Server: CAPI desde Worker en cada lead</li>
+                    <li>Deduplicaci&oacute;n via event_id compartido</li>
+                    <li>Datos hasheados SHA-256: email, tel, nombre</li>
+                    <li>Custom data: procedimiento, dominio, idioma</li>
+                </ul>
+            </div>
+
+            <div class="comp">
+                <h3>Chatbot IA (ManyChat + webhook)</h3>
+                <ul>
+                    <li>WhatsApp Business + Instagram + Facebook</li>
+                    <li>ManyChat recibe &rarr; webhook a Worker</li>
+                    <li>Worker env&iacute;a a Claude/GPT con system prompt</li>
+                    <li>Personalidad profesional, reglas inquebrantables</li>
+                    <li>Captura gradual de datos del paciente</li>
+                    <li>Protocolo de emergencias m&eacute;dicas</li>
+                </ul>
+            </div>
+
+            <div class="comp">
+                <h3>Seguridad y compliance</h3>
+                <ul>
+                    <li>SSL/TLS autom&aacute;tico via Cloudflare</li>
+                    <li>CDN global, DDoS protection</li>
+                    <li>Aviso de Privacidad LFPDPPP</li>
+                    <li>Derechos ARCO documentados</li>
+                    <li>CAN-SPAM: unsubscribe en cada email</li>
+                    <li>Datos de Meta hasheados (SHA-256)</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Domains -->
+    <section class="section">
+        <div class="section-label">06</div>
+        <h2 class="section-title">Mapa de dominios</h2>
+
+        <div class="diagram">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Dominio</th><th>Idioma</th><th>Contenido</th><th>DNS</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>cirugiaplasticacertificada.com</code></td>
+                            <td>ES</td>
+                            <td>Hub principal + 8 procedimientos (activo)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>liposculptureinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Liposuction (reservado)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>rhinoplastyinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Rhinoplasty (reservado)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>breastimplantsinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Breast Augmentation (reservado)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>abdominoplastyinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Tummy Tuck (reservado)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>buttockaugmentationinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>BBL (reservado)</td>
+                            <td><span class="dot on"></span>Active</td>
+                        </tr>
+                        <tr>
+                            <td><code>mommymakeoverinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Mommy Makeover (reservado)</td>
+                            <td><span class="dot wait"></span>Pending</td>
+                        </tr>
+                        <tr>
+                            <td><code>breastliftinmexico.com</code></td>
+                            <td>EN</td>
+                            <td>Breast Lift (reservado)</td>
+                            <td><span class="dot wait"></span>Pending</td>
+                        </tr>
+                        <tr>
+                            <td><code>plasticsurgeryinguadalajara.com</code></td>
+                            <td>EN</td>
+                            <td>Hub Guadalajara (reservado)</td>
+                            <td><span class="dot wait"></span>Pending</td>
+                        </tr>
+                        <tr>
+                            <td><code>mexicanplasticsurgery.com</code></td>
+                            <td>EN</td>
+                            <td>Hub turismo m&eacute;dico (reservado)</td>
+                            <td><span class="dot wait"></span>Pending</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stack -->
+    <section class="section">
+        <div class="section-label">07</div>
+        <h2 class="section-title">Stack tecnol&oacute;gico</h2>
+
+        <div class="diagram">
+            <div class="cost-grid">
+                <div class="cost-group">
+                    <h3>Infraestructura</h3>
+                    <div class="cost-item"><span>Cloudflare Pages</span><span class="price free">Hosting + CDN</span></div>
+                    <div class="cost-item"><span>Cloudflare Workers</span><span class="price free">API + L&oacute;gica</span></div>
+                    <div class="cost-item"><span>Cloudflare D1</span><span class="price free">Base de datos</span></div>
+                    <div class="cost-item"><span>GoDaddy</span><span class="price free">10 dominios</span></div>
+                </div>
+                <div class="cost-group">
+                    <h3>Servicios</h3>
+                    <div class="cost-item"><span>Resend</span><span class="price free">Email transaccional</span></div>
+                    <div class="cost-item"><span>Meta Pixel + CAPI</span><span class="price free">Tracking + conversiones</span></div>
+                    <div class="cost-item"><span>ManyChat</span><span class="price free">Chatbot multicanal</span></div>
+                    <div class="cost-item"><span>Meta Ads</span><span class="price free">Pauta publicitaria</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span>Eigen Medical Platform &mdash; Arquitectura v1.0</span>
+        <span>Abril 2026 &mdash; Dr. Marcos Gonz&aacute;lez Landeros</span>
+    </footer>
+
+</div>
+</body>
+</html>
