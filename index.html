@@ -454,7 +454,7 @@
         <div class="stat"><div class="stat-val">10</div><div class="stat-lbl">Dominios</div></div>
         <div class="stat"><div class="stat-val">8</div><div class="stat-lbl">Landing pages</div></div>
         <div class="stat"><div class="stat-val">56</div><div class="stat-lbl">Emails auto.</div></div>
-        <div class="stat"><div class="stat-val">5</div><div class="stat-lbl">API endpoints</div></div>
+        <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">API endpoints</div></div>
     </div>
 
     <!-- Architecture Diagram -->
@@ -525,7 +525,11 @@
                     </div>
                     <div class="node ext">
                         <div class="node-name">ManyChat</div>
-                        <div class="node-desc">WhatsApp + Instagram + FB<br>Webhook &rarr; Worker &rarr; IA<br>System prompt del doctor</div>
+                        <div class="node-desc">WhatsApp + Instagram + Messenger<br>Recibe mensajes &rarr; webhook<br>Entrega respuestas de IA</div>
+                    </div>
+                    <div class="node ext" style="border-color: var(--purple);">
+                        <div class="node-name" style="color: var(--purple);">OpenRouter &rarr; Claude Sonnet 4.5</div>
+                        <div class="node-desc">Chatbot IA con system prompt m&eacute;dico<br>Historial en D1 (20 msgs contexto)<br>Guardrails: no diagnostica, no da precios<br>~$3/mill&oacute;n tokens</div>
                     </div>
                     <div class="node ext">
                         <div class="node-name">GoDaddy API</div>
@@ -648,6 +652,12 @@
                         <td>Dashboard</td>
                         <td>Retorna overview, leads por procedimiento, por dominio, recientes</td>
                     </tr>
+                    <tr>
+                        <td><code>POST</code></td>
+                        <td><code>/api/chatbot</code></td>
+                        <td>ManyChat webhook</td>
+                        <td>Recibe mensaje &rarr; carga historial D1 &rarr; OpenRouter/Sonnet 4.5 &rarr; guarda respuesta &rarr; retorna texto</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -686,8 +696,8 @@
                     </tr>
                     <tr>
                         <td><code>conversations</code></td>
-                        <td>lead_id, channel, role, message</td>
-                        <td>Historial del chatbot (WhatsApp, Instagram, Facebook)</td>
+                        <td>subscriber_id, channel, role, message, metadata</td>
+                        <td>Historial del chatbot IA &mdash; contexto por suscriptor, modelo usado, tokens consumidos</td>
                     </tr>
                 </tbody>
             </table>
@@ -749,14 +759,16 @@
             </div>
 
             <div class="comp">
-                <h3>Chatbot IA (ManyChat + webhook)</h3>
+                <h3>Chatbot IA (producci&oacute;n)</h3>
                 <ul>
-                    <li>WhatsApp Business + Instagram + Facebook</li>
-                    <li>ManyChat recibe &rarr; webhook a Worker</li>
-                    <li>Worker env&iacute;a a Claude/GPT con system prompt</li>
-                    <li>Personalidad profesional, reglas inquebrantables</li>
-                    <li>Captura gradual de datos del paciente</li>
-                    <li>Protocolo de emergencias m&eacute;dicas</li>
+                    <li>ManyChat &rarr; webhook &rarr; Worker &rarr; OpenRouter &rarr; Claude Sonnet 4.5</li>
+                    <li>System prompt m&eacute;dico: credenciales, procedimientos, 4 ubicaciones, reglas</li>
+                    <li>Historial de conversaci&oacute;n en D1 (20 mensajes de contexto)</li>
+                    <li>Guardrails: no diagnostica, no da precios de cirug&iacute;as, no inventa</li>
+                    <li>Protocolo de emergencias m&eacute;dicas (redirige a 911)</li>
+                    <li>Canales: WhatsApp, Instagram, Facebook Messenger</li>
+                    <li>Capacidad: 100K mensajes/d&iacute;a (Cloudflare free tier)</li>
+                    <li>Costo: ~$3/mill&oacute;n tokens via OpenRouter</li>
                 </ul>
             </div>
 
